@@ -55,27 +55,6 @@ async def list_tables():
 
 
 
-@mcp.tool()
-async def list_tables():
-    """List all tables in the connected database"""
-    conn, cursor = None, None
-    try:
-        conn = db_pool.getconn()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = 'public';
-        """)
-        tables = cursor.fetchall()
-        return "\n".join([table[0] for table in tables])
-    except Exception as e:
-        return f"Error: {e}"
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            db_pool.putconn(conn)
 
 
 @mcp.tool()
