@@ -111,15 +111,42 @@ async def get_relationships():
             db_pool.putconn(conn)
 
 
+# @mcp.tool()
+# async def execute_query(query: str):
+#     """Run a raw SQL query"""
+#     conn, cursor = None, None
+#     try:
+#         conn = db_pool.getconn()
+#         conn.autocommit = True
+#         cursor = conn.cursor()
+#         cursor.execute(query)
+#         try:
+#             result = cursor.fetchall()
+#             return result
+#         except psycopg2.ProgrammingError:
+#             return "✅ Query executed successfully."
+#     except Exception as e:
+#         return f"Error: {e}"
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if conn:
+#             db_pool.putconn(conn)
+
+from pydantic import BaseModel
+
+class QueryInput(BaseModel):
+    query: str
+
 @mcp.tool()
-async def execute_query(query: str):
+async def execute_query(input: QueryInput):
     """Run a raw SQL query"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
         conn.autocommit = True
         cursor = conn.cursor()
-        cursor.execute(query)
+        cursor.execute(input.query)
         try:
             result = cursor.fetchall()
             return result
@@ -132,6 +159,7 @@ async def execute_query(query: str):
             cursor.close()
         if conn:
             db_pool.putconn(conn)
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
