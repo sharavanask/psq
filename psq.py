@@ -2,12 +2,11 @@ import psycopg2
 from psycopg2 import pool
 from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
-from fastapi import Body
-from pydantic import BaseModel
 import os
 
 load_dotenv()
 
+# ✅ Use DSN with sslmode=require for Render PostgreSQL
 DSN = f"""
 dbname={os.getenv('DB_NAME')}
 user={os.getenv('DB_USER')}
@@ -19,21 +18,24 @@ sslmode=require
 
 mcp = FastMCP("postgres-mcp-render")
 
+# ✅ Single pool for the Render PostgreSQL instance
 db_pool = psycopg2.pool.SimpleConnectionPool(
     minconn=1,
     maxconn=10,
     dsn=DSN
 )
 
+
 @mcp.tool()
 async def list_databases():
+    """List all PostgreSQL databases"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
         cursor = conn.cursor()
         cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false;")
         databases = cursor.fetchall()
-        return [db[0] for db in databases]
+        return "\n".join([db[0] for db in databases])
     except Exception as e:
         return f"Error: {e}"
     finally:
@@ -42,8 +44,10 @@ async def list_databases():
         if conn:
             db_pool.putconn(conn)
 
+
 @mcp.tool()
 async def list_tables():
+    """List all tables in the connected database"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
@@ -54,7 +58,7 @@ async def list_tables():
             WHERE table_schema = 'public';
         """)
         tables = cursor.fetchall()
-        return [table[0] for table in tables]
+        return "\n".join([table[0] for table in tables])
     except Exception as e:
         return f"Error: {e}"
     finally:
@@ -63,8 +67,10 @@ async def list_tables():
         if conn:
             db_pool.putconn(conn)
 
+
 @mcp.tool()
 async def get_table_info(table_name: str):
+    """Get column info for a table"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
@@ -75,10 +81,7 @@ async def get_table_info(table_name: str):
             WHERE table_name = %s
         """, (table_name,))
         columns = cursor.fetchall()
-        return [
-            {"column": col[0], "type": col[1], "nullable": col[2] == 'YES'}
-            for col in columns
-        ]
+        return "\n".join([f"{col[0]}: {col[1]} ({'nullable' if col[2]=='YES' else 'not nullable'})" for col in columns])
     except Exception as e:
         return f"Error: {e}"
     finally:
@@ -87,8 +90,10 @@ async def get_table_info(table_name: str):
         if conn:
             db_pool.putconn(conn)
 
+
 @mcp.tool()
 async def get_relationships():
+    """Get foreign key relationships"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
@@ -107,11 +112,7 @@ async def get_relationships():
                 c.contype = 'f';
         """)
         rows = cursor.fetchall()
-        return [
-            {"child_table": row[0], "child_column": row[1],
-             "parent_table": row[2], "parent_column": row[3]}
-            for row in rows
-        ]
+        return "\n".join([f"{row[0]}.{row[1]} → {row[2]}.{row[3]}" for row in rows])
     except Exception as e:
         return f"Error: {e}"
     finally:
@@ -120,17 +121,16 @@ async def get_relationships():
         if conn:
             db_pool.putconn(conn)
 
-class QueryInput(BaseModel):
-    query: str
 
 @mcp.tool()
-async def execute_query(input: QueryInput = Body(...)):
+async def execute_query(query: str):
+    """Run a raw SQL query"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
         conn.autocommit = True
         cursor = conn.cursor()
-        cursor.execute(input.query)
+        cursor.execute(query)
         try:
             result = cursor.fetchall()
             return result
@@ -144,6 +144,7 @@ async def execute_query(input: QueryInput = Body(...)):
         if conn:
             db_pool.putconn(conn)
 
+
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    mcp.run(port=port)
+    print("Starting MCP server...")
+    mcp.run()
