@@ -3,7 +3,8 @@ from psycopg2 import pool
 from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
 import os
-
+from fastapi import Body
+from pydantic import BaseModel
 load_dotenv()
 
 # ✅ Use DSN with sslmode=require for Render PostgreSQL
