@@ -139,7 +139,7 @@ class QueryInput(BaseModel):
     query: str
 
 @mcp.tool()
-async def execute_query(input: QueryInput):
+async def execute_query(input: QueryInput = Body(...)):
     """Run a raw SQL query"""
     conn, cursor = None, None
     try:
