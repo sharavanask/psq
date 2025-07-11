@@ -27,22 +27,32 @@ db_pool = psycopg2.pool.SimpleConnectionPool(
 
 
 @mcp.tool()
-async def list_databases():
-    """List all PostgreSQL databases"""
+async def list_tables():
+    """List all tables in the connected database"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false;")
-        databases = cursor.fetchall()
-        return "\n".join([db[0] for db in databases])
+        print("Connected OK. Running query...")
+        cursor.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public';
+        """)
+        tables = cursor.fetchall()
+        print("Query result:", tables)
+        return "\n".join([table[0] for table in tables]) or "✅ No tables found in schema 'public'."
     except Exception as e:
+        import traceback
+        print("Exception:", e)
+        traceback.print_exc()
         return f"Error: {e}"
     finally:
         if cursor:
             cursor.close()
         if conn:
             db_pool.putconn(conn)
+
 
 
 @mcp.tool()
