@@ -144,7 +144,7 @@ async def execute_query(query: str):
         if conn:
             db_pool.putconn(conn)
 
-
 if __name__ == "__main__":
-    print("Starting MCP server...")
-    mcp.run()
+    port = int(os.getenv("PORT", 8000))
+    print(f"Starting MCP server on port {port}...")
+    mcp.run(port=port)
