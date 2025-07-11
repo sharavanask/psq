@@ -2,12 +2,12 @@ import psycopg2
 from psycopg2 import pool
 from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
-import os
 from fastapi import Body
 from pydantic import BaseModel
+import os
+
 load_dotenv()
 
-# ✅ Use DSN with sslmode=require for Render PostgreSQL
 DSN = f"""
 dbname={os.getenv('DB_NAME')}
 user={os.getenv('DB_USER')}
@@ -19,34 +19,22 @@ sslmode=require
 
 mcp = FastMCP("postgres-mcp-render")
 
-# ✅ Single pool for the Render PostgreSQL instance
 db_pool = psycopg2.pool.SimpleConnectionPool(
     minconn=1,
     maxconn=10,
     dsn=DSN
 )
 
-
 @mcp.tool()
-async def list_tables():
-    """List all tables in the connected database"""
+async def list_databases():
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
         cursor = conn.cursor()
-        print("Connected OK. Running query...")
-        cursor.execute("""
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = 'public';
-        """)
-        tables = cursor.fetchall()
-        print("Query result:", tables)
-        return "\n".join([table[0] for table in tables]) or "✅ No tables found in schema 'public'."
+        cursor.execute("SELECT datname FROM pg_database WHERE datistemplate = false;")
+        databases = cursor.fetchall()
+        return [db[0] for db in databases]
     except Exception as e:
-        import traceback
-        print("Exception:", e)
-        traceback.print_exc()
         return f"Error: {e}"
     finally:
         if cursor:
@@ -54,13 +42,29 @@ async def list_tables():
         if conn:
             db_pool.putconn(conn)
 
-
-
-
+@mcp.tool()
+async def list_tables():
+    conn, cursor = None, None
+    try:
+        conn = db_pool.getconn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public';
+        """)
+        tables = cursor.fetchall()
+        return [table[0] for table in tables]
+    except Exception as e:
+        return f"Error: {e}"
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            db_pool.putconn(conn)
 
 @mcp.tool()
 async def get_table_info(table_name: str):
-    """Get column info for a table"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
@@ -71,7 +75,10 @@ async def get_table_info(table_name: str):
             WHERE table_name = %s
         """, (table_name,))
         columns = cursor.fetchall()
-        return "\n".join([f"{col[0]}: {col[1]} ({'nullable' if col[2]=='YES' else 'not nullable'})" for col in columns])
+        return [
+            {"column": col[0], "type": col[1], "nullable": col[2] == 'YES'}
+            for col in columns
+        ]
     except Exception as e:
         return f"Error: {e}"
     finally:
@@ -80,10 +87,8 @@ async def get_table_info(table_name: str):
         if conn:
             db_pool.putconn(conn)
 
-
 @mcp.tool()
 async def get_relationships():
-    """Get foreign key relationships"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
@@ -102,7 +107,11 @@ async def get_relationships():
                 c.contype = 'f';
         """)
         rows = cursor.fetchall()
-        return "\n".join([f"{row[0]}.{row[1]} → {row[2]}.{row[3]}" for row in rows])
+        return [
+            {"child_table": row[0], "child_column": row[1],
+             "parent_table": row[2], "parent_column": row[3]}
+            for row in rows
+        ]
     except Exception as e:
         return f"Error: {e}"
     finally:
@@ -111,37 +120,11 @@ async def get_relationships():
         if conn:
             db_pool.putconn(conn)
 
-
-# @mcp.tool()
-# async def execute_query(query: str):
-#     """Run a raw SQL query"""
-#     conn, cursor = None, None
-#     try:
-#         conn = db_pool.getconn()
-#         conn.autocommit = True
-#         cursor = conn.cursor()
-#         cursor.execute(query)
-#         try:
-#             result = cursor.fetchall()
-#             return result
-#         except psycopg2.ProgrammingError:
-#             return "✅ Query executed successfully."
-#     except Exception as e:
-#         return f"Error: {e}"
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             db_pool.putconn(conn)
-
-from pydantic import BaseModel
-
 class QueryInput(BaseModel):
     query: str
 
 @mcp.tool()
 async def execute_query(input: QueryInput = Body(...)):
-    """Run a raw SQL query"""
     conn, cursor = None, None
     try:
         conn = db_pool.getconn()
@@ -161,8 +144,6 @@ async def execute_query(input: QueryInput = Body(...)):
         if conn:
             db_pool.putconn(conn)
 
-
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    print(f"Starting MCP server on port {port}...")
     mcp.run(port=port)
