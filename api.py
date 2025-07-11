@@ -30,9 +30,9 @@ async def list_tables():
 async def get_table_info(table_name: str = Query(...)):
     return await psq.get_table_info(table_name)
 
-@app.get("/get_relationships")
-async def get_relationships():
-    return await psq.get_relationships()
+# @app.get("/get_relationships")
+# async def get_relationships():
+#     return await psq.get_relationships()
 
 from pydantic import BaseModel
 from fastapi import Body
