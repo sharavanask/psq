@@ -11,25 +11,22 @@ async def root():
 async def list_databases():
     return await psq.list_databases()
 
-@app.get("/connect_to_database")
-async def connect_to_database(db_name: str = Query(...)):
-    return await psq.connect_to_database(db_name)
 
 @app.get("/list_tables")
-async def list_tables(db_name: str = Query(...)):
-    return await psq.list_tables(db_name)
+async def list_tables():
+    return await psq.list_tables()
 
 @app.get("/get_table_info")
-async def get_table_info(db_name: str = Query(...), table_name: str = Query(...)):
-    return await psq.get_table_info(db_name, table_name)
+async def get_table_info(table_name: str = Query(...)):
+    return await psq.get_table_info(table_name)
 
 @app.get("/get_relationships")
-async def get_relationships(db_name: str = Query(...)):
-    return await psq.get_relationships(db_name)
+async def get_relationships():
+    return await psq.get_relationships()
 
 @app.post("/execute_query")
-async def execute_query(query: str = Query(...), db_name: str = Query(...)):
-    return await psq.execute_query(query, db_name) 
+async def execute_query(query: str = Query(...)):
+    return await psq.execute_query(query) 
 
 
 if __name__ == "__main__":
