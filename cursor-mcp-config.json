@@ -1,0 +1,27 @@
+{
+  "name": "postgres-mcp",
+  "description": "PostgreSQL MCP server for database operations",
+  "url": "https://psq-nwrf.onrender.com",
+  "tools": [
+    {
+      "name": "list_databases",
+      "description": "List all PostgreSQL databases"
+    },
+    {
+      "name": "list_tables", 
+      "description": "List all tables in the connected database"
+    },
+    {
+      "name": "get_table_info",
+      "description": "Get column information for a specific table"
+    },
+    {
+      "name": "get_relationships",
+      "description": "Get foreign key relationships between tables"
+    },
+    {
+      "name": "execute_query",
+      "description": "Execute raw SQL queries"
+    }
+  ]
+} 

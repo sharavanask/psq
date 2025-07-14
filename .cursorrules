@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "url": "https://psq-nwrf.onrender.com"
+    }
+  },
+  "rules": [
+    "You have access to a PostgreSQL MCP server with the following tools:",
+    "- list_databases: List all PostgreSQL databases",
+    "- list_tables: List all tables in the connected database", 
+    "- get_table_info: Get column information for a specific table",
+    "- get_relationships: Get foreign key relationships between tables",
+    "- execute_query: Execute raw SQL queries",
+    "",
+    "When users ask about database operations, use these tools to help them.",
+    "Always explain what you're doing when using database tools.",
+    "Be careful with SQL queries and explain the potential impact.",
+    "Use the tools to explore database structure when needed."
+  ]
+} 
